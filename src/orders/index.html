@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script>
+            socketArr = [];
+        </script>
+    </head>
+    <body>
+        <h3>AA Gaya </h3>
+		<input type="number" id="test_count" value="2"/>
+        <button id="test">Run Heavy Test</button> |
+        <button id="test1">Run Test1</button>
+        <button id="test2">Run Test2</button>
+        <button id="test3">Run Test3</button>
+		<div>
+			<h3>Result <b id="result_status"></b></h3>
+			<p>Connecting: <b id="connecting"></b></p>
+			<p>Connected: <b id="connected"></b></p>
+			<p>Closing: <b id="closing"></b></p>
+			<p>Closed: <b id="closed"></b></p>
+			<p>Error: <b id="error"></b></p>
+		</div>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/async/2.6.0/async.min.js"></script>
+        <script>
+			var wsArr = [];
+			var connected = connecting = closed_count = closing = err_count = 0;
+			function connectSocket(socket_number) {
+				return function() {
+					let query = 'userid=f14285285fc211e6a6da0401106ff801&access_token=8a61f2d7152411e7845406f96db8c169&client_id=872c8a10152411e7845406f96db8c169&organization=sdfsdfsdf&platform=Chrome&app_version=0.1.0&platform_version=63&app_name=com.handytrain.app&app_version=417';
+					let w = new WebSocket("ws://" + window.location.host + "/orders?" + query);
+					//console.log(w);
+					w.onopen = function(event) {
+						connected += 1;
+						w.state = "connected";
+						document.getElementById("connected").innerHTML = connected;
+						// console.log("OPENED", arguments);
+					};
+
+					w.onmessage = function(MessageEvent, callee, Symbol_iterator) {
+						// let d = JSON.parse(MessageEvent.data);
+						console.log("message", MessageEvent.data);
+					};
+
+					w.onclose = function(CloseEvent) {
+						closed_count += 1;
+						document.getElementById("closed").innerHTML = closed_count;
+						w.state = "closed";
+						console.log("close", arguments);
+					};
+
+					w.onerror = function() {
+						console.log("error", arguments);
+					};
+
+					wsArr.push(w);
+				}
+			}
+            function runTest() {
+				var sockArr = [];
+				var counter = document.getElementById("test_count").value;
+				console.log("Counter", counter);
+                for(var i=0;i< counter; i++) {
+                    // console.log("Pushing for " + i);
+                    sockArr.push(connectSocket(i));
+                    // setTimeout(function() {connectSocket(i);}, 1000 * i);;
+                }
+                async.parallel(sockArr, function(err, results) {
+                    console.log("All Sockets : ", err, results);
+                });
+
+				var result_status = document.getElementById("result_status");
+				var calculating = false;
+				setInterval(function() {
+					if(calculating) {
+						console.log("Still calculating from previous round");
+						return;
+					}
+					calculating = true;
+					connected = connecting = closed_count = closing = err_count = 0;
+					document.getElementById("connected").innerHTML = 0;
+					document.getElementById("closed").innerHTML = 0;
+					document.getElementById("closing").innerHTML = 0;
+					document.getElementById("connecting").innerHTML = 0;
+					document.getElementById("error").innerHTML = 0;
+					result_status.innerHTML = "Calulating...";
+					for(let i in wsArr) {
+						let sock = wsArr[i];
+						// console.log(sock.readyState, connected , connecting , closed_count , closing , err_count);
+						if(sock.readyState === 1) {
+							connected += 1;
+							document.getElementById("connected").innerHTML = connected;
+						} else if(sock.readyState === 3) {
+							closed_count += 1;
+							document.getElementById("closed").innerHTML = closed_count;
+						} else if(sock.readyState === 2) {
+							closing += 1;
+							document.getElementById("closing").innerHTML = closing;
+						} else if(sock.readyState === 0) {
+							connecting += 1;
+							document.getElementById("connecting").innerHTML = connecting;
+						} else {
+							err_count += 1;
+							document.getElementById("error").innerHTML = err_count;
+						}
+					}
+					console.log("Status checker Called");
+					result_status.innerHTML = "";
+					calculating = false;
+				}, 5000);
+            }
+            document.getElementById("test").addEventListener("click", runTest);
+			var w, w1;
+			document.getElementById("test1").addEventListener("click", function(){
+				w = new WebSocket("ws://127.0.0.1:3001/orders");
+				// console.log(w);
+
+				w.onopen = function(event) {
+					console.log("OPENED", arguments);
+				};
+
+				w.onmessage = function(MessageEvent, callee, Symbol_iterator) {
+					console.log("message", MessageEvent.data);
+				};
+
+				w.onclose = function(CloseEvent) {
+					console.log("close", arguments);
+				};
+
+				w.onerror = function() {
+					console.log("error", arguments);
+				};
+			});
+			document.getElementById("test2").addEventListener("click", function() {
+				let query = 'userid=f14285285fc211e6a6da0401106ff801&access_token=8a61f2d7152411e7845406f96db8c169&client_id=872c8a10152411e7845406f96db8c169&organization=f129b78c5fc211e6a6da0401106ff801&platform=Chrome&app_version=0.1.0&platform_version=63&app_name=com.handytrain.app&app_version=417';
+				w1 = new WebSocket("ws://127.0.0.1:3001/orders?" + query);
+				w1.addEventListener('sync', function(e) {
+					console.log("SYNGIN", e.detail);
+				});
+				w1.addEventListener('authenticated', function(e) {
+					console.log("AUTHNNN", e.detail);
+				});
+				w1.onopen = function(event) {
+					console.log("OPENED", arguments);
+				};
+				w1.onmessage = function(MessageEvent, callee, Symbol_iterator) {
+					let d = JSON.parse(MessageEvent.data);
+					let e = new CustomEvent(d.event, { detail: d.data });
+					w1.dispatchEvent(e);
+					console.log("message", JSON.parse(MessageEvent.data));
+				};
+				w1.onclose = function(CloseEvent) {
+					console.log("close", arguments);
+				};
+				w1.onerror = function() {
+					console.log("error", arguments);
+				};
+			});
+        </script>
+    </body>
+</html>
