@@ -116,7 +116,7 @@ export class Order {
 						return reject(err);
 					}
 
-					let res: any = {};
+					let res: any = {'pending':0, 'canceled':0, 'delivered':0, 'new_users': 0, 'existing_users': 0};
 					for(let doc of docs) {
 						res[doc._id] = doc.count;
 					}
